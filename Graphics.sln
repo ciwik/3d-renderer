@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Graphics", "Graphics\Graphics.csproj", "{CAFA5893-9057-4B50-AC9E-6D2B460C362C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "View", "View\View.csproj", "{4E762FC3-DDD2-4BBD-82DC-72B7A96B9E8B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CAFA5893-9057-4B50-AC9E-6D2B460C362C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAFA5893-9057-4B50-AC9E-6D2B460C362C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAFA5893-9057-4B50-AC9E-6D2B460C362C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAFA5893-9057-4B50-AC9E-6D2B460C362C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E762FC3-DDD2-4BBD-82DC-72B7A96B9E8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E762FC3-DDD2-4BBD-82DC-72B7A96B9E8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E762FC3-DDD2-4BBD-82DC-72B7A96B9E8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E762FC3-DDD2-4BBD-82DC-72B7A96B9E8B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4B8047F1-751B-4EAB-83F8-DDF4F5A2329F}
+	EndGlobalSection
+EndGlobal
