@@ -43,7 +43,6 @@
   <ItemGroup>
     <Compile Include="Canvas.cs" />
     <Compile Include="ObjParser.cs" />
-    <Compile Include="Primitives\BarycentricVector.cs" />
     <Compile Include="Primitives\Line.cs" />
     <Compile Include="Primitives\Mesh.cs" />
     <Compile Include="Primitives\Polygon.cs" />

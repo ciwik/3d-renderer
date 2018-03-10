@@ -17,37 +17,33 @@ namespace Graphics
             List<Vector3> normals = new List<Vector3>();
             foreach (var line in lines)
             {
-                try
-                {
-                    string[] parts = line.Split(' ');
-                    string type = parts[0];
-                    string[] values = new string[parts.Length - 1];
-                    Array.Copy(parts, 1, values, 0, values.Length);
+                string[] parts = line.Split(' ');
+                string type = parts[0];
+                string[] values = new string[parts.Length - 1];
+                Array.Copy(parts, 1, values, 0, values.Length);
 
-                    switch (type)
-                    {
-                        case "v":
-                            vectors.Add(ParseVector(values));
-                            break;
-                        case "vn":
-                            normals.Add(ParseVector(values));
-                            break;
-                        case "f":
-                            polygons.Add(ParsePolygon(values, vectors, normals));
-                            break;
-                    }
-                }
-                catch (Exception)
+                switch (type)
                 {
-                    //continue;
+                    case "v":
+                        vectors.Add(ParseVector(values));
+                        break;
+                    case "vn":
+                        normals.Add(ParseVector(values));
+                        break;
+                    case "f":
+                        polygons.Add(ParsePolygon(values, vectors, normals));
+                        break;
+                    default:
+                        continue;
                 }
             }
             return new Mesh(polygons.ToArray());
         }
 
         private static Vector3 ParseVector(string[] tuples)
-        {
-            float[] values = tuples.Except(new []{string.Empty}).Select(x => float.Parse(x.Replace('.', ','))).ToArray();
+        {            
+            var tuples1 = tuples.Where(t => !t.Equals(string.Empty));
+            float[] values = tuples1.Select(x => float.Parse(x.Replace('.', ','))).ToArray();
             return new Vector3(values[0], values[1], values[2]);//.Normalized;
         }
 

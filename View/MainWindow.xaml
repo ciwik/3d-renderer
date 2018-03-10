@@ -8,6 +8,7 @@
         Title="MainWindow" Height="1000" Width="1000">
     <Grid>
         <Image Name="CanvasView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+        <TextBox Name="LogView" HorizontalAlignment="Left" Height="45" Margin="0,0,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Opacity="0.8" IsReadOnly="True"/>
 
     </Grid>
 </Window>

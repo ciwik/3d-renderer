@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Graphics.Primitives;
 
 namespace Graphics
@@ -9,9 +12,21 @@ namespace Graphics
     public class Canvas
     {
         private Bitmap _bitmap;
+        private BitmapData _bitmapData;
+        private IntPtr _ptr;
+        private byte[] _rgbValues;
         private Color _color = Color.Black;
+        private int _width, _height;
 
-        public Bitmap Bitmap => _bitmap;
+        public Bitmap Bitmap
+        {
+            get
+            {
+                Marshal.Copy(_rgbValues, 0, _ptr, _rgbValues.Length);
+                _bitmap.UnlockBits(_bitmapData);
+                return _bitmap;
+            }
+        }
 
         private Canvas()
         {
@@ -19,18 +34,28 @@ namespace Graphics
 
         private void FillBitmap(Color color)
         {
-            for (int x = 0; x < _bitmap.Width; x++)
+            for (int x = 0; x < _width; x++)
             {
-                for (int y = 0; y < _bitmap.Height; y++)
+                for (int y = 0; y < _height; y++)
                 {
-                    _bitmap.SetPixel(x, y, color);
+                    DrawPoint(x, y, color);
                 }
             }
         }
 
         public Canvas(int width, int height, Color color)
         {
-            _bitmap = new Bitmap(width, height);
+            _width = width;
+            _height = height;
+            _bitmap = new Bitmap(_width, _height);
+            _bitmapData = _bitmap.LockBits(new Rectangle(0, 0, _width, _height), ImageLockMode.ReadWrite,
+                _bitmap.PixelFormat);
+
+            _ptr = _bitmapData.Scan0;
+            int bytesCount = Math.Abs(_bitmapData.Stride) * _height;
+            _rgbValues = new byte[bytesCount];
+            Marshal.Copy(_ptr, _rgbValues, 0, bytesCount);
+
             FillBitmap(color);
         }
 
@@ -51,6 +76,15 @@ namespace Graphics
             canvas._bitmap.Save(filePath);
         }
 
+        public void DrawPoint(int x, int y, Color color)
+        {
+            int index = (y * _height + x) * 4;
+            _rgbValues[index] = color.B;
+            _rgbValues[index+1] = color.G;
+            _rgbValues[index+2] = color.R;
+            _rgbValues[index+3] = color.A;
+        }
+
         #region Line
 
         private float step = 0.01f;
@@ -60,7 +94,7 @@ namespace Graphics
             for (float t = 0; t <= 1f; t += step)
             {
                 var point = Vector2Int.Lerp(from, to, t);
-                _bitmap.SetPixel(point.X, point.Y, _color);
+                DrawPoint(point.X, point.Y, _color);
             }
         }
 
@@ -89,9 +123,9 @@ namespace Graphics
             for (int x = from.X; x <= to.X; x++)
             {
                 if (steep)
-                    _bitmap.SetPixel(y, x, _color);
+                    DrawPoint(y, x, _color);
                 else
-                    _bitmap.SetPixel(x, y, _color);
+                    DrawPoint(x, y, _color);
                 error += dError;
                 if (error > 0.5f)
                 {
@@ -121,17 +155,17 @@ namespace Graphics
             float y = from.Y;
             for (int x = from.X; x <= to.X; x++)
             {
-                var color = Color.FromArgb((int) (_color.A * (1 - (y - (int) y))), _color.R, _color.G, _color.B);
+                var color = Color.FromArgb((int) (_color.A * (1 - (y - (int) y))), _color);
                 if (steep)
-                    _bitmap.SetPixel((int) y, x, color);
+                    DrawPoint((int) y, x, color);
                 else
-                    _bitmap.SetPixel(x, (int) y, color);
+                    DrawPoint(x, (int) y, color);
 
-                color = Color.FromArgb((int) (_color.A * (y - (int) y)), _color.R, _color.G, _color.B);
+                color = Color.FromArgb((int) (_color.A * (y - (int) y)), _color);
                 if (steep)
-                    _bitmap.SetPixel((int) y + 1, x, color);
+                    DrawPoint((int) y + 1, x, color);
                 else
-                    _bitmap.SetPixel(x, (int) y + 1, color);
+                    DrawPoint(x, (int) y + 1, color);
 
                 y += gradient;
             }
@@ -174,6 +208,7 @@ namespace Graphics
             }
             DrawTriangle(points, lineType);
             FillTriangle(points);
+            //FillTriangle2(points);
         }        
 
         public void DrawTriangle(Vector2Int[] points, Line.LineType lineType)
@@ -188,10 +223,53 @@ namespace Graphics
 
         public void FillTriangle(Vector2Int[] points)
         {
+            Vector2Int min = new Vector2Int(), max = new Vector2Int();
+
+            min.X = points.Min(p => p.X);
+            min.Y = points.Min(p => p.Y);
+            max.X = points.Max(p => p.X);
+            max.Y = points.Max(p => p.Y);
+
+            Parallel.For(min.X, max.X + 1, x =>
+            {
+                for (int y = min.Y; y <= max.Y; y++)
+                {
+                    Vector3 bar = GetBarycentricCoords(new Vector2Int(x, y), points);
+                    if (bar.X > 0 && bar.Y > 0 && bar.Z > 0)
+                        DrawPoint(x, y, _color);
+                }
+            });
+            /*for (int x = min.X; x <= max.X; x++)
+            {
+                for (int y = min.Y; y <= max.Y; y++)
+                {
+                    Vector3 bar = GetBarycentricCoords(new Vector2Int(x, y), points);
+                    if (bar.X > 0 && bar.Y > 0 && bar.Z > 0)
+                        DrawPoint(x, y, _color);
+                }
+            }*/
+        }
+
+        private Vector3 GetBarycentricCoords(Vector2Int pos, Vector2Int[] triangle)
+        {
+            Vector3 result = new Vector3();
+            result.X = ((pos.Y - triangle[2].Y)*(triangle[1].X - triangle[2].X) - (pos.X - triangle[2].X)*(triangle[1].Y - triangle[2].Y))/
+                (float)((triangle[0].Y - triangle[2].Y) * (triangle[1].X - triangle[2].X) - (triangle[0].X - triangle[2].X) * (triangle[1].Y - triangle[2].Y));
+
+            result.Y = ((pos.Y - triangle[0].Y) * (triangle[2].X - triangle[0].X) - (pos.X - triangle[0].X) * (triangle[2].Y - triangle[0].Y)) /
+                       (float)((triangle[1].Y - triangle[0].Y) * (triangle[2].X - triangle[0].X) - (triangle[1].X - triangle[0].X) * (triangle[2].Y - triangle[0].Y));
+
+            result.Z = ((pos.Y - triangle[1].Y) * (triangle[0].X - triangle[1].X) - (pos.X - triangle[1].X) * (triangle[0].Y - triangle[1].Y)) /
+                       (float)((triangle[2].Y - triangle[1].Y) * (triangle[0].X - triangle[1].X) - (triangle[2].X - triangle[1].X) * (triangle[0].Y - triangle[1].Y));
+            return result;
+        }
+
+        public void FillTriangle2(Vector2Int[] points)
+        {
             points = points.OrderBy(p => p.X).ToArray();
             Vector2Int A = points[0], B = points[1], C = points[2];
 
-            for (int x = A.X + 1; x <= B.X; x++)
+            Parallel.For(A.X + 1, B.X + 1, x =>
             {
                 float t = (x - A.X) / (float)(B.X - A.X);
                 int Y1 = Vector2Int.Lerp(A, B, t).Y;
@@ -204,11 +282,43 @@ namespace Graphics
                 }
                 for (int y = Y1; y <= Y2; y++)
                 {
-                    _bitmap.SetPixel(x, y, _color);
+                    DrawPoint(x, y, _color);
                 }
-            }
+            });
+            /*for (int x = A.X + 1; x <= B.X; x++)
+            {
+                float t = (x - A.X) / (float)(B.X - A.X);
+                int Y1 = Vector2Int.Lerp(A, B, t).Y;
+                t = (x - A.X) / (float)(C.X - A.X);
+                int Y2 = Vector2Int.Lerp(A, C, t).Y;
 
-            for (int x = B.X + 1; x <= C.X; x++)
+                if (Y1 > Y2)
+                {
+                    Swap(ref Y1, ref Y2);
+                }
+                for (int y = Y1; y <= Y2; y++)
+                {
+                    DrawPoint(x, y, _color);
+                }
+            }*/
+
+            Parallel.For(B.X + 1, C.X + 1, x => {
+                float t = (x - B.X) / (float)(C.X - B.X);
+                int Y1 = Vector2Int.Lerp(B, C, t).Y;
+                t = (x - A.X) / (float)(C.X - A.X);
+                int Y2 = Vector2Int.Lerp(A, C, t).Y;
+
+                if (Y1 > Y2)
+                {
+                    Swap(ref Y1, ref Y2);
+                }
+
+                for (int y = Y1; y <= Y2; y++)
+                {
+                    DrawPoint(x, y, _color);
+                }
+            });
+            /*for (int x = B.X + 1; x <= C.X; x++)
             {
                 float t = (x - B.X) / (float)(C.X - B.X);
                 int Y1 = Vector2Int.Lerp(B, C, t).Y;
@@ -222,9 +332,9 @@ namespace Graphics
 
                 for (int y = Y1; y <= Y2; y++)
                 {
-                    _bitmap.SetPixel(x, y, _color);
+                    DrawPoint(x, y, _color);
                 }
-            }
+            }*/
         }
 
         public void DrawMesh(Mesh mesh, Line.LineType lineType)
@@ -264,8 +374,8 @@ namespace Graphics
 
         private Vector2Int GetScreenPoint(Vector3 v)
         {
-            return new Vector2Int((int)((1 + v.X) * _bitmap.Width / 2.1f),
-                (int)((1 - v.Y) * _bitmap.Height / 2.1f));
+            return new Vector2Int((int)((1 + v.X) * _width / 2.1f),
+                (int)((1 - v.Y) * _height / 2.1f));
         }
 
         private Vector3 GetNormal(Polygon polygon)

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using Graphics;
@@ -21,11 +23,11 @@ namespace View
 
             _canvas = CreateCanvas();
 
-            //Draw();
+            //DrawLines();
             DrawObj();
             //DrawPolygon();
             //DrawTriangle();
-
+            
             CanvasView.Source = ConvertCanvasToSource(_canvas);
         }
 
@@ -67,12 +69,20 @@ namespace View
 
         private void DrawObj()
         {
+            StringBuilder builder = new StringBuilder();
             string path = "african_head.obj";
+            Stopwatch watch = Stopwatch.StartNew();
             Mesh mesh = ObjParser.GetMeshFromFile(path);
+            watch.Stop();
+            builder.AppendLine($"Parsing: {watch.ElapsedMilliseconds} ms");
+            watch = Stopwatch.StartNew();
             _canvas.DrawMesh(mesh, Line.LineType.Bresenham);            
+            watch.Stop();
+            builder.AppendLine($"Drawing: {watch.ElapsedMilliseconds} ms");
+            LogView.Text = builder.ToString();
         }
 
-        private void Draw()
+        private void DrawLines()
         {
             int width = (int)Width, height = (int)Height;
             Vector2Int center = new Vector2Int(width / 2, height / 2);
