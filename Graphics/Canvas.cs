@@ -193,7 +193,7 @@ namespace Graphics
             //FillTriangle2(points);
         }
 
-        public void DrawPolygonWithTex(Polygon polygon, float intensity, Line.LineType lineType)
+        public void DrawPolygonWithTex(Polygon polygon, Line.LineType lineType)
         {
             Vector2Int[] points = new Vector2Int[3];
             for (int i = 0; i < polygon.Vertices.Length; i++)
@@ -400,12 +400,13 @@ namespace Graphics
 
             foreach (Polygon polygon in mesh.Polygons)
             {                
-                //SetColor(GetRandomColor());
                 float intensity = 0f;
                 if (IsPolygonShouldBeDrawn(polygon, out intensity))
                 {
-                    //DrawPolygon(polygon, intensity, lineType);
-                    DrawPolygonWithTex(polygon, intensity, lineType);
+                    if (polygon.UVs.Length == 0)
+                        DrawPolygon(polygon, intensity, lineType);
+                    else
+                        DrawPolygonWithTex(polygon, lineType);
                 }
             }
         }

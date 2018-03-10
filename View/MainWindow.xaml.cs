@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -8,6 +9,7 @@ using System.Windows.Media.Imaging;
 using Graphics;
 using Graphics.Primitives;
 using Color = System.Drawing.Color;
+using System.Configuration;
 
 namespace View
 {
@@ -56,8 +58,8 @@ namespace View
 
         private void DrawObj()
         {
-            string texPath = "african_head_diffuse.jpg";
-            string path = "african_head.obj";
+            string texPath = ConfigurationManager.AppSettings["TexPath"];
+            string path = ConfigurationManager.AppSettings["ObjPath"];
 
             StringBuilder builder = new StringBuilder();            
             Stopwatch watch = Stopwatch.StartNew();
