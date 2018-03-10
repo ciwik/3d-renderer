@@ -45,6 +45,14 @@ namespace Graphics
             FillBitmap(color);
 
             _zBuffer = new float[_width, _height];
+
+            for (int x = 0; x < _width; x++)
+            {
+                for (int y = 0; y < _height; y++)
+                {
+                    _zBuffer[x, y] = float.MinValue;
+                }
+            }
         }
 
         public void SetColor(Color color)
@@ -179,7 +187,7 @@ namespace Graphics
                 points[i] = GetScreenPoint(polygon.Vertices[i]);
             }
             
-            DrawTriangle(points, lineType);
+            //DrawTriangle(points, lineType);
             FillTriangle(points, polygon);            
             //FillTriangle(points);
             //FillTriangle2(points);
@@ -244,12 +252,12 @@ namespace Graphics
             max.X = points.Max(p => p.X);
             max.Y = points.Max(p => p.Y);
 
-            Parallel.For(min.X, max.X + 1, x =>
+            Parallel.For(min.X - 1, max.X + 1, x =>
             {
-                for (int y = min.Y; y <= max.Y; y++)
+                for (int y = min.Y - 1; y <= max.Y + 1; y++)
                 {
                     Vector3 bar = GetBarycentricCoords(new Vector2Int(x, y), points);
-                    if (bar.X > 0 && bar.Y > 0 && bar.Z > 0)
+                    if (bar.X >= -2 * Single.Epsilon && bar.Y >= -2 * Single.Epsilon && bar.Z >= -2 * Single.Epsilon)
                     {
                         float zCoord = polygon.Vertices[0].Z * bar.X + polygon.Vertices[1].Z * bar.Y +
                                        polygon.Vertices[2].Z * bar.Z;
@@ -427,9 +435,9 @@ namespace Graphics
         }
 
         private Vector2Int GetScreenPoint(Vector3 v)
-        {
-            return new Vector2Int((int)((1 + v.X) * (_width - 2) / 2),
-                (int)((1 - v.Y) * (_height - 2)/ 2));
+        {            
+            return new Vector2Int(Convert.ToInt32((1 + v.X) * (_width - 1) / 2),
+                Convert.ToInt32((1 - v.Y) * (_height - 1) / 2));
         }
 
         private Vector3 GetNormal(Polygon polygon)
