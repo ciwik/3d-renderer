@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BitmapLock.cs" />
     <Compile Include="Canvas.cs" />
     <Compile Include="ObjParser.cs" />
     <Compile Include="Primitives\Line.cs" />

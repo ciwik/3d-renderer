@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -54,27 +55,33 @@ namespace View
             _canvas.FillTriangle(points);
         }
 
-        private void DrawPolygon()
-        {
-            Polygon polygon = new Polygon(new []
-            {
-                new Vector3(4, 4, 0) / 10,
-                new Vector3(2, 7, 0) / 10,
-                new Vector3(0, 4, 0) / 10
-            },
-            new Vector3(0, 0, 0));
+        //private void DrawPolygon()
+        //{
+        //    Polygon polygon = new Polygon(new []
+        //    {
+        //        new Vector3(4, 4, 0) / 10,
+        //        new Vector3(2, 7, 0) / 10,
+        //        new Vector3(0, 4, 0) / 10
+        //    },
+        //    new Vector3(0, 0, 0), null);
 
-            _canvas.DrawPolygon(polygon, 1f, Line.LineType.Bresenham);
-        }
+        //    _canvas.DrawPolygon(polygon, 1f, Line.LineType.Bresenham);
+        //}
 
         private void DrawObj()
         {
-            StringBuilder builder = new StringBuilder();
+            string texPath = "african_head_diffuse.jpg";
             string path = "african_head.obj";
+
+            StringBuilder builder = new StringBuilder();            
             Stopwatch watch = Stopwatch.StartNew();
-            Mesh mesh = ObjParser.GetMeshFromFile(path);
+            Mesh mesh = ObjParser.GetMeshFromFile(path);            
             watch.Stop();
             builder.AppendLine($"Parsing: {watch.ElapsedMilliseconds} ms");
+            watch = Stopwatch.StartNew();
+            mesh.Texture = Bitmap.FromFile(texPath) as Bitmap;            
+            watch.Stop();
+            builder.AppendLine($"Loading texture: {watch.ElapsedMilliseconds} ms");
             watch = Stopwatch.StartNew();
             _canvas.DrawMesh(mesh, Line.LineType.Bresenham);            
             watch.Stop();

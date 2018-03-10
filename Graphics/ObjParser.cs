@@ -15,6 +15,7 @@ namespace Graphics
             List<Vector3> vectors = new List<Vector3>();
             List<Polygon> polygons = new List<Polygon>();
             List<Vector3> normals = new List<Vector3>();
+            List<Vector2> uvs = new List<Vector2>();
             foreach (var line in lines)
             {
                 string[] parts = line.Split(' ');
@@ -27,11 +28,15 @@ namespace Graphics
                     case "v":
                         vectors.Add(ParseVector(values));
                         break;
+                    case "vt":
+                        Vector3 v = ParseVector(values);
+                        uvs.Add(new Vector2(v));
+                        break;
                     case "vn":
                         normals.Add(ParseVector(values));
                         break;
                     case "f":
-                        polygons.Add(ParsePolygon(values, vectors, normals));
+                        polygons.Add(ParsePolygon(values, vectors, normals, uvs));
                         break;
                     default:
                         continue;
@@ -47,30 +52,35 @@ namespace Graphics
             return new Vector3(values[0], values[1], values[2]);//.Normalized;
         }
 
-        private static Polygon ParsePolygon(string[] tuples, List<Vector3> vectors, List<Vector3> normals)
+        private static Polygon ParsePolygon(string[] tuples, List<Vector3> vectors, List<Vector3> normals, List<Vector2> uvs)
         {
             List<Vector3> values = new List<Vector3>();
-            Vector3 normal = new Vector3();
+            List<Vector3> normal = new List<Vector3>();
+            List<Vector2> uv = new List<Vector2>();
             foreach (var tuple in tuples)
             {
                 string[] parts = tuple.Replace("//", "/").Split('/');
                 int vertexNumber = int.Parse(parts[0]);
                 int normalNumber = -1;
+                int uvNumber = -1;
                 values.Add(vectors[vertexNumber - 1]);
-                if (tuple.Contains("//"))   //vertex // normal
+                if (tuple.Contains("//")) //vertex // normal
                 {
                     normalNumber = int.Parse(parts[1]);
                 }
-                else   //vertex / texture / [normal]
+                else //vertex / texture / [normal]
                 {
-                    if (parts.Length > 2)   //vertex / texture / normal
+                    uvNumber = int.Parse(parts[1]);
+                    if (parts.Length > 2) //vertex / texture / normal
+                    {                        
                         normalNumber = int.Parse(parts[2]);
-                    //else
-                        //TODO: parse tex   //vertex / texture
+                    }                  
                 }
-                normal = normals[normalNumber-1];
+                
+                normal.Add(normals[normalNumber-1]);
+                uv.Add(uvs[uvNumber - 1]);
             }
-            return new Polygon(values.ToArray(), normal);
+            return new Polygon(values.ToArray(), normal.ToArray(), uv.ToArray());
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -11,22 +10,14 @@ namespace Graphics
 {
     public class Canvas
     {
-        private Bitmap _bitmap;
-        private BitmapData _bitmapData;
-        private IntPtr _ptr;
-        private byte[] _rgbValues;
+        private BitmapLock _bitmapLock;
         private Color _color = Color.Black;
         private int _width, _height;
+        private float[,] _zBuffer;
 
-        public Bitmap Bitmap
-        {
-            get
-            {
-                Marshal.Copy(_rgbValues, 0, _ptr, _rgbValues.Length);
-                _bitmap.UnlockBits(_bitmapData);
-                return _bitmap;
-            }
-        }
+        private BitmapLock _texture;
+
+        public Bitmap Bitmap => _bitmapLock.Release();
 
         private Canvas()
         {
@@ -47,42 +38,22 @@ namespace Graphics
         {
             _width = width;
             _height = height;
-            _bitmap = new Bitmap(_width, _height);
-            _bitmapData = _bitmap.LockBits(new Rectangle(0, 0, _width, _height), ImageLockMode.ReadWrite,
-                _bitmap.PixelFormat);
-
-            _ptr = _bitmapData.Scan0;
-            int bytesCount = Math.Abs(_bitmapData.Stride) * _height;
-            _rgbValues = new byte[bytesCount];
-            Marshal.Copy(_ptr, _rgbValues, 0, bytesCount);
+            Bitmap bitmap = new Bitmap(_width, _height);
+            _bitmapLock = new BitmapLock(bitmap, ImageLockMode.ReadWrite);
 
             FillBitmap(color);
+
+            _zBuffer = new float[_width, _height];
         }
 
         public void SetColor(Color color)
         {
             _color = color;
         }
-
-        public static Canvas FromFile(string filePath)
-        {
-            var canvas = new Canvas();
-            canvas._bitmap = Image.FromFile(filePath) as Bitmap;
-            return canvas;
-        }
-
-        public static void SaveToFile(Canvas canvas, string filePath)
-        {
-            canvas._bitmap.Save(filePath);
-        }
-
+        
         public void DrawPoint(int x, int y, Color color)
         {
-            int index = (y * _height + x) * 4;
-            _rgbValues[index] = color.B;
-            _rgbValues[index+1] = color.G;
-            _rgbValues[index+2] = color.R;
-            _rgbValues[index+3] = color.A;
+            _bitmapLock.SetPixel(x, y, color);
         }
 
         #region Line
@@ -206,10 +177,23 @@ namespace Graphics
             {
                 points[i] = GetScreenPoint(polygon.Vertices[i]);
             }
+            
             DrawTriangle(points, lineType);
-            FillTriangle(points);
+            FillTriangle(points, polygon);            
+            //FillTriangle(points);
             //FillTriangle2(points);
-        }        
+        }
+
+        public void DrawPolygonWithTex(Polygon polygon, float intensity, Line.LineType lineType)
+        {
+            Vector2Int[] points = new Vector2Int[3];
+            for (int i = 0; i < polygon.Vertices.Length; i++)
+            {
+                points[i] = GetScreenPoint(polygon.Vertices[i]);
+            }
+
+            FillTriangleWithTex(points, polygon);
+        }
 
         public void DrawTriangle(Vector2Int[] points, Line.LineType lineType)
         {
@@ -250,6 +234,68 @@ namespace Graphics
             }*/
         }
 
+        public void FillTriangle(Vector2Int[] points, Polygon polygon)  //with z-buffer
+        {
+            Vector2Int min = new Vector2Int(), max = new Vector2Int();
+
+            min.X = points.Min(p => p.X);
+            min.Y = points.Min(p => p.Y);
+            max.X = points.Max(p => p.X);
+            max.Y = points.Max(p => p.Y);
+
+            Parallel.For(min.X, max.X + 1, x =>
+            {
+                for (int y = min.Y; y <= max.Y; y++)
+                {
+                    Vector3 bar = GetBarycentricCoords(new Vector2Int(x, y), points);
+                    if (bar.X > 0 && bar.Y > 0 && bar.Z > 0)
+                    {
+                        float zCoord = polygon.Vertices[0].Z * bar.X + polygon.Vertices[1].Z * bar.Y +
+                                       polygon.Vertices[2].Z * bar.Z;
+                        if (_zBuffer[x, y] < zCoord)
+                        {
+                            DrawPoint(x, y, _color);
+                            _zBuffer[x, y] = zCoord;
+                        }
+                    }
+                }
+            });
+        }
+
+        public void FillTriangleWithTex(Vector2Int[] points, Polygon polygon)  //with texture
+        {
+            Vector2Int min = new Vector2Int(), max = new Vector2Int();
+
+            min.X = points.Min(p => p.X);
+            min.Y = points.Min(p => p.Y);
+            max.X = points.Max(p => p.X);
+            max.Y = points.Max(p => p.Y);
+
+            Parallel.For(min.X, max.X + 1, x =>
+            {
+                for (int y = min.Y; y <= max.Y; y++)
+                {
+                    Vector3 bar = GetBarycentricCoords(new Vector2Int(x, y), points);
+                    if (bar.X > 0 && bar.Y > 0 && bar.Z > 0)
+                    {
+                        float zCoord = polygon.Vertices[0].Z * bar.X + polygon.Vertices[1].Z * bar.Y +
+                                       polygon.Vertices[2].Z * bar.Z;
+                        if (_zBuffer[x, y] < zCoord)
+                        {
+                            Vector2 uvCoords = new Vector2(
+                                polygon.UVs[0].X * bar.X + polygon.UVs[1].X * bar.Y + polygon.UVs[2].X * bar.Z,
+                                polygon.UVs[0].Y * bar.X + polygon.UVs[1].Y * bar.Y + polygon.UVs[2].Y * bar.Z);
+                            Vector2Int texCoords = new Vector2Int((int) (_texture.Width * uvCoords.X),
+                                (int) (_texture.Height * (1 - uvCoords.Y)));
+                            Color color = _texture.GetPixel(texCoords.X, texCoords.Y);
+                            DrawPoint(x, y, color);
+                            _zBuffer[x, y] = zCoord;
+                        }
+                    }
+                }
+            });
+        }
+
         private Vector3 GetBarycentricCoords(Vector2Int pos, Vector2Int[] triangle)
         {
             Vector3 result = new Vector3();
@@ -259,8 +305,10 @@ namespace Graphics
             result.Y = ((pos.Y - triangle[0].Y) * (triangle[2].X - triangle[0].X) - (pos.X - triangle[0].X) * (triangle[2].Y - triangle[0].Y)) /
                        (float)((triangle[1].Y - triangle[0].Y) * (triangle[2].X - triangle[0].X) - (triangle[1].X - triangle[0].X) * (triangle[2].Y - triangle[0].Y));
 
-            result.Z = ((pos.Y - triangle[1].Y) * (triangle[0].X - triangle[1].X) - (pos.X - triangle[1].X) * (triangle[0].Y - triangle[1].Y)) /
-                       (float)((triangle[2].Y - triangle[1].Y) * (triangle[0].X - triangle[1].X) - (triangle[2].X - triangle[1].X) * (triangle[0].Y - triangle[1].Y));
+
+            result.Z = 1 - result.X - result.Y;
+            //result.Z = ((pos.Y - triangle[1].Y) * (triangle[0].X - triangle[1].X) - (pos.X - triangle[1].X) * (triangle[0].Y - triangle[1].Y)) /
+            //           (float)((triangle[2].Y - triangle[1].Y) * (triangle[0].X - triangle[1].X) - (triangle[2].X - triangle[1].X) * (triangle[0].Y - triangle[1].Y));
             return result;
         }
 
@@ -339,12 +387,17 @@ namespace Graphics
 
         public void DrawMesh(Mesh mesh, Line.LineType lineType)
         {
+            _texture = new BitmapLock(mesh.Texture, ImageLockMode.ReadOnly);
+
             foreach (Polygon polygon in mesh.Polygons)
             {                
                 //SetColor(GetRandomColor());
                 float intensity = 0f;
-                if (IsPolygonShouldBeDrawn(polygon, ref intensity))
-                    DrawPolygon(polygon, intensity, lineType);
+                if (IsPolygonShouldBeDrawn(polygon, out intensity))
+                {
+                    //DrawPolygon(polygon, intensity, lineType);
+                    DrawPolygonWithTex(polygon, intensity, lineType);
+                }
             }
         }
 
@@ -360,7 +413,7 @@ namespace Graphics
         }
 
         //back-face culling
-        private bool IsPolygonShouldBeDrawn(Polygon polygon, ref float intensity)
+        private bool IsPolygonShouldBeDrawn(Polygon polygon, out float intensity)
         {
             Vector2Int[] triangle = new Vector2Int[3];            
             for (int i = 0; i < polygon.Vertices.Length; i++)
