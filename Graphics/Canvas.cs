@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Graphics.Primitives;
+using Microsoft.Win32.SafeHandles;
 
 namespace Graphics
 {
@@ -271,12 +272,12 @@ namespace Graphics
             max.X = points.Max(p => p.X);
             max.Y = points.Max(p => p.Y);
 
-            Parallel.For(min.X, max.X + 1, x =>
+            Parallel.For(min.X - 1, max.X + 1, x =>
             {
-                for (int y = min.Y; y <= max.Y; y++)
+                for (int y = min.Y - 1; y <= max.Y + 1; y++)
                 {
                     Vector3 bar = GetBarycentricCoords(new Vector2Int(x, y), points);
-                    if (bar.X > 0 && bar.Y > 0 && bar.Z > 0)
+                    if (bar.X >= -2*Single.Epsilon && bar.Y >= -2*Single.Epsilon && bar.Z >= -2*Single.Epsilon)
                     {
                         float zCoord = polygon.Vertices[0].Z * bar.X + polygon.Vertices[1].Z * bar.Y +
                                        polygon.Vertices[2].Z * bar.Z;
@@ -290,7 +291,7 @@ namespace Graphics
                             Color color = _texture.GetPixel(texCoords.X, texCoords.Y);
                             DrawPoint(x, y, color);
                             _zBuffer[x, y] = zCoord;
-                        }
+                        }                        
                     }
                 }
             });
@@ -427,8 +428,8 @@ namespace Graphics
 
         private Vector2Int GetScreenPoint(Vector3 v)
         {
-            return new Vector2Int((int)((1 + v.X) * _width / 2.1f),
-                (int)((1 - v.Y) * _height / 2.1f));
+            return new Vector2Int((int)((1 + v.X) * (_width - 2) / 2),
+                (int)((1 - v.Y) * (_height - 2)/ 2));
         }
 
         private Vector3 GetNormal(Polygon polygon)

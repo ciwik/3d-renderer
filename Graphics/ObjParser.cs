@@ -42,7 +42,7 @@ namespace Graphics
                         continue;
                 }
             }
-            return new Mesh(polygons.ToArray());
+            return new Mesh(polygons.ToArray()).Normalize();
         }
 
         private static Vector3 ParseVector(string[] tuples)
@@ -67,19 +67,20 @@ namespace Graphics
                 if (tuple.Contains("//")) //vertex // normal
                 {
                     normalNumber = int.Parse(parts[1]);
+                    normal.Add(normals[normalNumber - 1]);
                 }
                 else //vertex / texture / [normal]
-                {
+                {   //vertex / texture
                     uvNumber = int.Parse(parts[1]);
+                    uv.Add(uvs[uvNumber - 1]);
                     if (parts.Length > 2) //vertex / texture / normal
                     {                        
                         normalNumber = int.Parse(parts[2]);
+                        normal.Add(normals[normalNumber - 1]);
                     }                  
-                }
-                
-                normal.Add(normals[normalNumber-1]);
-                uv.Add(uvs[uvNumber - 1]);
+                }                                               
             }
+
             return new Polygon(values.ToArray(), normal.ToArray(), uv.ToArray());
         }
     }

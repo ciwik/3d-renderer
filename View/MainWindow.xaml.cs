@@ -26,7 +26,6 @@ namespace View
 
             //DrawLines();
             DrawObj();
-            //DrawPolygon();
             //DrawTriangle();
             
             CanvasView.Source = ConvertCanvasToSource(_canvas);
@@ -54,19 +53,6 @@ namespace View
             _canvas.DrawTriangle(points, Line.LineType.Wu);
             _canvas.FillTriangle(points);
         }
-
-        //private void DrawPolygon()
-        //{
-        //    Polygon polygon = new Polygon(new []
-        //    {
-        //        new Vector3(4, 4, 0) / 10,
-        //        new Vector3(2, 7, 0) / 10,
-        //        new Vector3(0, 4, 0) / 10
-        //    },
-        //    new Vector3(0, 0, 0), null);
-
-        //    _canvas.DrawPolygon(polygon, 1f, Line.LineType.Bresenham);
-        //}
 
         private void DrawObj()
         {

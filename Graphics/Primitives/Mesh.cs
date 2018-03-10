@@ -1,4 +1,6 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
+using System.Linq;
 
 namespace Graphics.Primitives
 {
@@ -13,6 +15,20 @@ namespace Graphics.Primitives
         {
             _polygons = polygons;
             Texture = null;
+        }
+
+        public Mesh Normalize()
+        {
+            float max = _polygons.Max(p => p.Vertices.Max(v => Math.Max(v.X, Math.Max(v.Y, v.Z))));
+            foreach (var polygon in _polygons)
+            {
+                for (int i = 0; i < polygon.Vertices.Length; i++)
+                {
+                    polygon.Vertices[i] /= max;
+                }
+            }
+
+            return this;
         }
     }
 }
