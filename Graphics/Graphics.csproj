@@ -11,6 +11,8 @@
     <AssemblyName>Graphics</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,11 +46,14 @@
     <Compile Include="BitmapLock.cs" />
     <Compile Include="Canvas.cs" />
     <Compile Include="ObjParser.cs" />
+    <Compile Include="Primitives\CameraType.cs" />
     <Compile Include="Primitives\Line.cs" />
+    <Compile Include="Primitives\Matrix4x4.cs" />
     <Compile Include="Primitives\Mesh.cs" />
     <Compile Include="Primitives\Polygon.cs" />
     <Compile Include="Primitives\Vector2.cs" />
     <Compile Include="Primitives\Vector3.cs" />
+    <Compile Include="Primitives\Vector4.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Primitives\Vector2Int.cs" />
   </ItemGroup>

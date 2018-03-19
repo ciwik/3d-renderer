@@ -25,6 +25,7 @@ namespace View
             InitializeComponent();
 
             _canvas = CreateCanvas();
+            _canvas.SetCameraType(CameraType.Perspective);
 
             //DrawLines();
             DrawObj();

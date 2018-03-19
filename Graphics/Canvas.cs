@@ -15,6 +15,7 @@ namespace Graphics
         private Color _color = Color.Black;
         private int _width, _height;
         private float[,] _zBuffer;
+        private float _depth;
 
         private BitmapLock _texture;
 
@@ -282,8 +283,16 @@ namespace Graphics
 
             Parallel.For(min.X - 1, max.X + 1, x =>
             {
+                if (x < 0 || x > _width - 1)
+                {
+                    return;
+                }
                 for (int y = min.Y - 1; y <= max.Y + 1; y++)
                 {
+                    if (y < 0 || y > _height - 1)
+                    {
+                        continue;
+                    }
                     Vector3 bar = GetBarycentricCoords(new Vector2Int(x, y), points);
                     if (bar.X >= -2*Single.Epsilon && bar.Y >= -2*Single.Epsilon && bar.Z >= -2*Single.Epsilon)
                     {
@@ -394,12 +403,31 @@ namespace Graphics
             }*/
         }
 
+        
+        Matrix4x4 _view = Matrix4x4.Identity;
+        Matrix4x4 _model = Matrix4x4.Identity;
+        Matrix4x4 _viewport = Matrix4x4.Identity;
+
         public void DrawMesh(Mesh mesh, Line.LineType lineType)
         {
+            _depth = mesh.Polygons.Max(p => p.Vertices.Max(v => v.Z)) -
+                     mesh.Polygons.Min(p => p.Vertices.Min(v => v.Z));
             _texture = new BitmapLock(mesh.Texture, ImageLockMode.ReadOnly);
 
+            if (_cameraType == CameraType.Perspective)
+            {
+                _viewport = GetViewport();
+                _view = LookAt(new Vector3(0, 1, 0), new Vector3(1, 0.4f, 0));
+            }
+
             foreach (Polygon polygon in mesh.Polygons)
-            {                
+            {
+                for (int i = 0; i < polygon.Vertices.Length; i++)
+                {
+                    polygon.Vertices[i] = TransformVector(polygon.Vertices[i]);
+                }
+
+
                 float intensity = 0f;
                 if (IsPolygonShouldBeDrawn(polygon, out intensity))
                 {
@@ -425,20 +453,86 @@ namespace Graphics
         //back-face culling
         private bool IsPolygonShouldBeDrawn(Polygon polygon, out float intensity)
         {
-            Vector2Int[] triangle = new Vector2Int[3];            
-            for (int i = 0; i < polygon.Vertices.Length; i++)
-            {
-                triangle[i] = GetScreenPoint(polygon.Vertices[i]);
-            }
             Vector3 normal = GetNormal(polygon);
             intensity = Vector3.Dot(normal, _lightDirection);
             return intensity > 0;
         }
 
+        private CameraType _cameraType;
+        private Vector3 _cameraPosition = new Vector3(-1, 1, 1);
+        private Matrix4x4 _cameraRotation = Matrix4x4.Identity;
+
+        public void SetCameraType(CameraType type)
+        {
+            _cameraType = type;
+        }
+
+        private Vector3 TransformVector(Vector3 v)
+        {
+            Vector4 v4 = _view * new Vector4(v);
+            v = v4.ToVector3();
+
+            return v;
+        }
+
         private Vector2Int GetScreenPoint(Vector3 v)
-        {            
-            return new Vector2Int(Convert.ToInt32((1 + v.X) * (_width - 1) / 2),
+        {
+            Vector2Int vev = new Vector2Int(Convert.ToInt32((1 + v.X) * (_width - 1) / 2),
                 Convert.ToInt32((1 - v.Y) * (_height - 1) / 2));
+            Vector4 v4 = _viewport * new Vector4(v);
+            v = v4.ToVector3();
+            v /= v.Z;
+            return new Vector2Int(Convert.ToInt32(v.X), Convert.ToInt32(v.Y));
+            //return vev;
+        }
+
+        private Matrix4x4 GetProjection(Vector3 v)
+        {
+            Matrix4x4 matrix = Matrix4x4.Identity;
+            matrix[3, 2] = -1 / (_cameraPosition - v).Magnitude;
+            return matrix;
+        }
+
+        private Matrix4x4 LookAt(Vector3 center, Vector3 up1)
+        {
+            Vector3 forward = (_cameraPosition - center).Normalized;
+            Vector3 right = Vector3.Cross(up1, forward).Normalized;
+            Vector3 up = Vector3.Cross(forward, right).Normalized;
+
+            Matrix4x4 minv = Matrix4x4.Identity;
+            Matrix4x4 tr = Matrix4x4.Identity;
+            
+            minv[0] = new Vector4(right);
+            minv[1] = new Vector4(up);
+            minv[2] = new Vector4(forward);
+
+            minv[0, 3] = 0;
+            minv[1, 3] = 0;
+            minv[2, 3] = 0;
+
+          
+            tr[0, 3] = -_cameraPosition.X;
+            tr[1, 3] = -_cameraPosition.Y;
+            tr[2, 3] = -_cameraPosition.Z;
+
+            return minv * tr;
+        }
+
+        private Matrix4x4 GetViewport()
+        {
+            Matrix4x4 matrix = Matrix4x4.Identity;
+            Vector2Int size = new Vector2Int(_width, _height) / 2;
+            matrix[0, 0] = size.X;
+            matrix[1, 1] = size.Y;
+            matrix[0, 2] = size.X;
+            matrix[1, 2] = size.Y;
+            //Matrix4x4 matrix = new Matrix4x4(new Vector4(new Vector3(_width, _height, _depth) / 2));
+            //matrix[0, 3] = pos.X + _width / 2f;
+            //matrix[1, 3] = pos.Y + _height / 2f;
+            //matrix[2, 3] = _depth / 2f;
+
+            //return matrix;
+            return matrix;
         }
 
         private Vector3 GetNormal(Polygon polygon)
