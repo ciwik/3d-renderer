@@ -45,6 +45,9 @@
   <ItemGroup>
     <Compile Include="BitmapLock.cs" />
     <Compile Include="Canvas.cs" />
+    <Compile Include="GouraudVertexShader.cs" />
+    <Compile Include="IPixelShader.cs" />
+    <Compile Include="IVertexShader.cs" />
     <Compile Include="ObjParser.cs" />
     <Compile Include="Primitives\CameraType.cs" />
     <Compile Include="Primitives\Line.cs" />

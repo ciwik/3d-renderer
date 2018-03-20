@@ -185,7 +185,9 @@ namespace Graphics
             Vector2Int[] points = new Vector2Int[3];
             for (int i = 0; i < polygon.Vertices.Length; i++)
             {
-                points[i] = GetScreenPoint(polygon.Vertices[i]);
+                Vector3 v3 =_shader.OnVertex(polygon, i);
+                v3 /= v3.Z;
+                points[i] = new Vector2Int(Convert.ToInt32(v3.X), Convert.ToInt32(v3.Y));
             }
             
             //DrawTriangle(points, lineType);
@@ -199,7 +201,9 @@ namespace Graphics
             Vector2Int[] points = new Vector2Int[3];
             for (int i = 0; i < polygon.Vertices.Length; i++)
             {
-                points[i] = GetScreenPoint(polygon.Vertices[i]);
+                Vector3 v3 = _shader.OnVertex(polygon, i);
+                v3 /= v3.Z;
+                points[i] = new Vector2Int(Convert.ToInt32(v3.X), Convert.ToInt32(v3.Y));
             }
 
             FillTriangleWithTex(points, polygon);
@@ -306,8 +310,11 @@ namespace Graphics
                             Vector2Int texCoords = new Vector2Int((int) (_texture.Width * uvCoords.X),
                                 (int) (_texture.Height * (1 - uvCoords.Y)));
                             Color color = _texture.GetPixel(texCoords.X, texCoords.Y);
-                            DrawPoint(x, y, color);
-                            _zBuffer[x, y] = zCoord;
+                            if (!_shader.OnPixel(bar, ref color))
+                            {
+                                DrawPoint(x, y, color);
+                                _zBuffer[x, y] = zCoord;
+                            }
                         }                        
                     }
                 }
@@ -405,8 +412,8 @@ namespace Graphics
 
         
         Matrix4x4 _view = Matrix4x4.Identity;
-        Matrix4x4 _model = Matrix4x4.Identity;
         Matrix4x4 _viewport = Matrix4x4.Identity;
+        GouraudVertexShader _shader;
 
         public void DrawMesh(Mesh mesh, Line.LineType lineType)
         {
@@ -417,8 +424,14 @@ namespace Graphics
             if (_cameraType == CameraType.Perspective)
             {
                 _viewport = GetViewport();
-                _view = LookAt(new Vector3(0, 1, 0), new Vector3(1, 0.4f, 0));
+                _view = LookAt(new Vector3(-0.2f, 0.3f, 0), new Vector3(0.5f, 1, 0));
             }
+
+            _shader = new GouraudVertexShader(_lightDirection)
+            {
+                View = _view,
+                Viewport = _viewport
+            };
 
             foreach (Polygon polygon in mesh.Polygons)
             {
@@ -459,7 +472,7 @@ namespace Graphics
         }
 
         private CameraType _cameraType;
-        private Vector3 _cameraPosition = new Vector3(-1, 1, 1);
+        private Vector3 _cameraPosition = new Vector3(0, 0, 2);
         private Matrix4x4 _cameraRotation = Matrix4x4.Identity;
 
         public void SetCameraType(CameraType type)
@@ -526,12 +539,7 @@ namespace Graphics
             matrix[1, 1] = size.Y;
             matrix[0, 2] = size.X;
             matrix[1, 2] = size.Y;
-            //Matrix4x4 matrix = new Matrix4x4(new Vector4(new Vector3(_width, _height, _depth) / 2));
-            //matrix[0, 3] = pos.X + _width / 2f;
-            //matrix[1, 3] = pos.Y + _height / 2f;
-            //matrix[2, 3] = _depth / 2f;
 
-            //return matrix;
             return matrix;
         }
 
