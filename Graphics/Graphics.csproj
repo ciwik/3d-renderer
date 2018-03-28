@@ -48,9 +48,11 @@
     <Compile Include="GouraudVertexShader.cs" />
     <Compile Include="IPixelShader.cs" />
     <Compile Include="IVertexShader.cs" />
+    <Compile Include="MtlParser.cs" />
     <Compile Include="ObjParser.cs" />
     <Compile Include="Primitives\CameraType.cs" />
     <Compile Include="Primitives\Line.cs" />
+    <Compile Include="Primitives\Material.cs" />
     <Compile Include="Primitives\Matrix4x4.cs" />
     <Compile Include="Primitives\Mesh.cs" />
     <Compile Include="Primitives\Polygon.cs" />

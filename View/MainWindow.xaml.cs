@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
@@ -64,7 +65,8 @@ namespace View
 
             StringBuilder builder = new StringBuilder();            
             Stopwatch watch = Stopwatch.StartNew();
-            Mesh mesh = ObjParser.GetMeshFromFile(path);            
+            Mesh mesh = ObjParser.GetMeshFromFile(path);
+            List<Material> materials = MtlParser.GetMaterialFromFile("Wood Texture.mtl");
             watch.Stop();
             builder.AppendLine($"Parsing: {watch.ElapsedMilliseconds} ms");
             watch = Stopwatch.StartNew();
